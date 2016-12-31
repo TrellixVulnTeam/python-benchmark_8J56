@@ -1,11 +1,11 @@
 import json
+
+import bson.json_util
 from flask import jsonify
 from flask_restful import Resource
 
-import bson.json_util
-
-import utils.chart_util as chart_util
-import mylog
+import benchmark.mylog as mylog
+from benchmark.utils import chart_util
 
 LOG = mylog.setup_custom_logger(__name__)
 

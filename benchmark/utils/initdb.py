@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import mongo_util
 import process_util
-import settings
+from benchmark import settings
 
 
 def init_servers():

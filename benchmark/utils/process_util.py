@@ -1,8 +1,8 @@
 import os
 
 import mongo_util
-import settings
 import tar_util
+from benchmark import settings
 
 
 def get_all_tar_files(all_tars_dir=settings.result_dir):

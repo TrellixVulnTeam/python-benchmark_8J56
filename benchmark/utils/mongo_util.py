@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-import settings
+from benchmark import settings
 
 client = MongoClient(settings.mongodb_host, settings.mongodb_port)
 db = client[settings.mongodb_database]
