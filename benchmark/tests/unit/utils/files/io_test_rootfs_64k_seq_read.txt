@@ -1,0 +1,18 @@
+test: (g=0): rw=read, bs=64K-64K/64K-64K/64K-64K, ioengine=libaio, iodepth=64
+fio-2.2.8
+Starting 1 process
+
+test: (groupid=0, jobs=1): err= 0: pid=1666: Thu Dec 29 12:24:22 2016
+  read : io=4096.0MB, bw=72786KB/s, iops=1137, runt= 57625msec
+  cpu          : usr=0.35%, sys=1.51%, ctx=28519, majf=0, minf=542
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.1%, 32=0.1%, >=64=99.9%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.1%, >=64=0.0%
+     issued    : total=r=65536/w=0/d=0, short=r=0/w=0/d=0, drop=r=0/w=0/d=0
+     latency   : target=0, window=0, percentile=100.00%, depth=64
+
+Run status group 0 (all jobs):
+   READ: io=4096.0MB, aggrb=72786KB/s, minb=72786KB/s, maxb=72786KB/s, mint=57625msec, maxt=57625msec
+
+Disk stats (read/write):
+  vda: ios=65319/53, merge=0/1, ticks=3670366/62, in_queue=3672418, util=99.92%

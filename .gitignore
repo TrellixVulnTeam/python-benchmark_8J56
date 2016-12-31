@@ -1,0 +1,14 @@
+*.DS_Store
+*.log
+*.egg*
+*.mo
+*.pyc
+*.swo
+*.swp
+.idea
+.venv
+
+# setup_tools
+dist/*
+build/*
+
