@@ -1,0 +1,6 @@
+flake8
+flask
+flask_cors
+flask_restful
+pymongo
+
