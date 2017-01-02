@@ -2,9 +2,9 @@ import unittest
 
 import bson.json_util
 
-import utils.chart_util as chart_util
-import utils.mongo_util as mongo_util
-import utils.stats_util as stats_util
+from benchmark.utils import chart_util
+from benchmark.utils import mongo_util
+from benchmark.utils import stats_util
 
 
 class TestChartUtil(unittest.TestCase):

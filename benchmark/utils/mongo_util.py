@@ -92,7 +92,3 @@ def insert_many_charts(charts):
 def truncate_charts():
     collection = db[settings.mongodb_collection_charts]
     collection.delete_many({})
-
-
-
-

@@ -56,4 +56,3 @@ def get_server_ip_by_id(server_id, servers):
     for server in servers:
         if server["id"] == server_id:
             return server["ip"]
-

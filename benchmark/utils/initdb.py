@@ -5,6 +5,9 @@ from benchmark import settings
 
 
 def init_servers():
+    """
+    初始化servers,如果server id已经存在,会更新MongoDB里面的数据.
+    """
     # qcloud
     servers = []
     server1 = {"id": 1, "ip": "10.0.246.150/24", "company": "qcloud",
@@ -88,6 +91,9 @@ def init_servers():
 
 
 def init_charts():
+    """
+    初始化图表,如果chart id已经存在,会更新MongoDB里面的数据.
+    """
     charts = []
     chart1 = {"id": 1, "title": "CPU计算能力", "servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
               "sub_title": "相对性能 = (20w)/(计算20w内最大素数时间),越大性能越好。命令: sysbench --num-threads=64 --test=cpu --cpu-max-prime=200000 run",

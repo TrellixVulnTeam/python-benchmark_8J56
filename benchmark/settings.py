@@ -9,7 +9,3 @@ mongodb_database = "benchmark"
 mongodb_collection_servers = "servers"
 mongodb_collection_results = "results"
 mongodb_collection_charts = "charts"
-
-
-
-

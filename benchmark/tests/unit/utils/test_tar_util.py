@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import unittest
 
-import utils.tar_util as tar_util
+from benchmark.utils import tar_util
 
 
 class TestTarUtil(unittest.TestCase):

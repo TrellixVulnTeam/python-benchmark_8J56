@@ -1,6 +1,6 @@
 import unittest
 
-import utils.mongo_util as mongo_util
+from benchmark.utils import mongo_util
 
 
 class TestProcessUtil(unittest.TestCase):

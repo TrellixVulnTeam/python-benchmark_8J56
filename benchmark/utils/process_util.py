@@ -100,7 +100,8 @@ def get_all_io_result(io_result_path):
 def get_one_io_result(io_result_file):
     with open(io_result_file) as f:
         for line in f.readlines():
-            if "io" in line and "bw" in line and "iops" in line and "runt" in line:
+            if "io" in line and "bw" in line \
+                    and "iops" in line and "runt" in line:
                 sections = line.split(",")
                 io_section = sections[0]
                 bw_section = sections[1]
@@ -119,13 +120,15 @@ def get_one_io_result(io_result_file):
                     bw = float(
                         bw_with_unit.replace('MB/s', '').strip()) * 1024.0
                 elif "B/s" in bw_with_unit:
-                    bw = float(bw_with_unit.replace('B/s', '').strip()) / 1024.0
+                    bw = float(
+                        bw_with_unit.replace('B/s', '').strip()) / 1024.0
 
                 iops = float(iops_section.split('=')[1].strip())
                 runt = float(
                     runt_section.split('=')[1].replace('msec', '').strip())
                 # convert the unit of bandwidth to MB
-                return {"type": type, "io_mb": io, "bw_kb_per_sec": bw / 1024.0,
+                return {"type": type, "io_mb": io,
+                        "bw_kb_per_sec": bw / 1024.0,
                         "iops": iops, "runt_msec": runt}
 
 

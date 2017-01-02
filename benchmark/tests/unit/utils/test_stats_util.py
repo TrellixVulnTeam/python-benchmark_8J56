@@ -1,7 +1,7 @@
 import json
 import unittest
 
-import utils.stats_util as stats_util
+from benchmark.utils import stats_util
 
 
 class TestStatsUtil(unittest.TestCase):

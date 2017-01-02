@@ -84,7 +84,8 @@ def get_one_statistics_avg(ip):
         io_data_disk_64k_seq_write_iops.append(
             float(result["io"]["data_disk_64k_seq_write"]["iops"]))
 
-    return {
+    return \
+        {
             "ip": ip,
             "cpu": avg(cpu_values),
             "memory": {"ops_per_second": avg(memory_ops_per_second_values),
@@ -118,7 +119,7 @@ def get_one_statistics_avg(ip):
                     "iops": avg(io_data_disk_64k_seq_write_iops)}
 
             }
-            }
+        }
 
 
 def get_all_statistics_avg():
@@ -134,6 +135,3 @@ def get_statistics_by_server_id(server_id):
     server = mongo_util.get_server("id", server_id)
     ip = server["ip"]
     return get_one_statistics_avg(ip)
-
-
-

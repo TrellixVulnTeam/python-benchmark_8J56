@@ -1,6 +1,6 @@
 import unittest
 
-import utils.process_util as process_util
+from benchmark.utils import process_util
 
 
 class TestProcessUtil(unittest.TestCase):

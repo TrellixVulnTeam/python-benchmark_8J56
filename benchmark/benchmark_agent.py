@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 import os
-import subprocess
-from datetime import datetime
-import tarfile
 import shutil
+import subprocess
+import tarfile
+from datetime import datetime
 
 # cpu tests arguments
 cpu_num_threads = 64
@@ -51,9 +51,9 @@ def write_str_to_file(file_name, string):
 
 
 def get_ip_list_dir_name():
-    ip_info_output = subprocess.check_output(
-        ["/sbin/ip a | awk '/inet /{print substr($2,0,20)}' | grep -v 127.0.0.1"],
-        shell=True)
+    cmd = "/sbin/ip a | awk '/inet /{print substr($2,0,20)}' | " \
+          "grep -v 127.0.0.1"
+    ip_info_output = subprocess.check_output([cmd], shell=True)
     ips = []
     for ip in ip_info_output.split('\n'):
         if "127.0.0.1" not in ip:
@@ -137,141 +137,120 @@ def memory_test(file_name):
 
 def io_test_rootfs(result_dir):
     print("rootfs 4k_rand_write")
-    cmd_4k_rand_write = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                        "--gtod_reduce=1 --name=test --filename=test --bs=4k " \
-                        "--iodepth=64 --size=%s --readwrite=randwrite " \
-                        "--runtime=%s > " \
-                        "%s/%s" % (io_size,
-                                   io_test_run_time,
-                                   result_dir,
-                                   io_test_rootfs_4k_rand_write_file)
+    cmd_4k_rand_write = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=test --bs=4k " \
+        "--iodepth=64 --size=%s --readwrite=randwrite " \
+        "--runtime=%s > " \
+        "%s/%s" % (io_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_rootfs_4k_rand_write_file)
     print cmd_4k_rand_write
     subprocess.check_output([cmd_4k_rand_write], shell=True)
 
     print("rootfs 4k_rand_read")
-    cmd_4k_rand_read = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                       "--gtod_reduce=1 --name=test --filename=test --bs=4k " \
-                       "--iodepth=64 --size=%s --readwrite=randread " \
-                       "--runtime=%s > " \
-                       "%s/%s" % (io_size,
-                                  io_test_run_time,
-                                  result_dir,
-                                  io_test_rootfs_4k_rand_read_file)
+    cmd_4k_rand_read = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=test --bs=4k " \
+        "--iodepth=64 --size=%s --readwrite=randread " \
+        "--runtime=%s > " \
+        "%s/%s" % (io_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_rootfs_4k_rand_read_file)
     print cmd_4k_rand_read
     subprocess.check_output([cmd_4k_rand_read], shell=True)
 
     print("rootfs 64k_seq_write")
-    cmd_64k_seq_write = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                        "--gtod_reduce=1 --name=test --filename=test " \
-                        "--bs=64k --iodepth=64 --size=%s --readwrite=write " \
-                        "--runtime=%s > " \
-                        "%s/%s" % (io_size,
-                                   io_test_run_time,
-                                   result_dir,
-                                   io_test_rootfs_64k_seq_write_file)
+    cmd_64k_seq_write = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=test " \
+        "--bs=64k --iodepth=64 --size=%s --readwrite=write " \
+        "--runtime=%s > " \
+        "%s/%s" % (io_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_rootfs_64k_seq_write_file)
     print cmd_64k_seq_write
     subprocess.check_output([cmd_64k_seq_write], shell=True)
 
     print("rootfs 64k_seq_read")
-    cmd_64k_seq_read = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                       "--gtod_reduce=1 --name=test --filename=test " \
-                       "--bs=64k --iodepth=64 --size=%s --readwrite=read " \
-                       "--runtime=%s > " \
-                       "%s/%s" % (io_size,
-                                  io_test_run_time,
-                                  result_dir,
-                                  io_test_rootfs_64k_seq_read_file)
+    cmd_64k_seq_read = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=test " \
+        "--bs=64k --iodepth=64 --size=%s --readwrite=read " \
+        "--runtime=%s > " \
+        "%s/%s" % (io_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_rootfs_64k_seq_read_file)
     print cmd_64k_seq_read
     subprocess.check_output([cmd_64k_seq_read], shell=True)
-
-
-# def io_test_rootfs_4k_rand_write(file_name):
-#     subprocess.check_output([
-#         "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=%s --readwrite=randwrite > %s" % (
-#             io_size, file_name)],
-#         shell=True)
-#
-#
-# def io_test_rootfs_4k_rand_read(file_name):
-#     subprocess.check_output([
-#         "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 "
-#         "--name=test --filename=test --bs=4k --iodepth=64 --size=%s --readwrite=randread > %s" % (
-#             io_size, file_name)],
-#         shell=True)
-#
-#
-# def io_test_rootfs_64k_seq_write(file_name):
-#     subprocess.check_output([
-#         "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=64k --iodepth=64 --size=%s --readwrite=write > %s" % (
-#             io_size, file_name)],
-#         shell=True)
-#
-#
-# def io_test_rootfs_64k_seq_read(file_name):
-#     subprocess.check_output([
-#         "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=64k --iodepth=64 --size=%s --readwrite=read > %s" % (
-#             io_size, file_name)],
-#         shell=True)
 
 
 def io_test_data_disk(result_dir):
     data_disk_path = get_data_disk()
     print(data_disk_path + "  4k_rand_write")
-    cmd_4k_rand_write = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                        "--gtod_reduce=1 --name=test --filename=%s " \
-                        "--bs=4k --iodepth=64 --size=%s " \
-                        "--readwrite=randwrite --runtime=%s > " \
-                        "%s/%s" % (data_disk_path,
-                                   io_data_disk_size,
-                                   io_test_run_time,
-                                   result_dir,
-                                   io_test_data_disk_4k_rand_write_file)
+    cmd_4k_rand_write = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=%s " \
+        "--bs=4k --iodepth=64 --size=%s " \
+        "--readwrite=randwrite --runtime=%s > " \
+        "%s/%s" % (data_disk_path,
+                   io_data_disk_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_data_disk_4k_rand_write_file)
     print cmd_4k_rand_write
     subprocess.check_output([cmd_4k_rand_write], shell=True)
 
     print(data_disk_path + "  4k_rand_read")
-    cmd_4k_rand_read = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                       "--gtod_reduce=1 --name=test --filename=%s " \
-                       "--bs=4k --iodepth=64 --size=%s " \
-                       "--readwrite=randread --runtime=%s > " \
-                       "%s/%s" % (data_disk_path,
-                                  io_data_disk_size,
-                                  io_test_run_time,
-                                  result_dir,
-                                  io_test_data_disk_4k_rand_read_file)
+    cmd_4k_rand_read = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=%s " \
+        "--bs=4k --iodepth=64 --size=%s " \
+        "--readwrite=randread --runtime=%s > " \
+        "%s/%s" % (data_disk_path,
+                   io_data_disk_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_data_disk_4k_rand_read_file)
     print cmd_4k_rand_read
     subprocess.check_output([cmd_4k_rand_read], shell=True)
 
     print(data_disk_path + "  64k_seq_write")
-    cmd_64k_seq_write = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                        "--gtod_reduce=1 --name=test --filename=%s " \
-                        "--bs=64k --iodepth=64 --size=%s " \
-                        "--readwrite=write --runtime=%s > " \
-                        "%s/%s" % (data_disk_path,
-                                   io_data_disk_size,
-                                   io_test_run_time,
-                                   result_dir,
-                                   io_test_data_disk_64k_seq_write_file)
+    cmd_64k_seq_write = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=%s " \
+        "--bs=64k --iodepth=64 --size=%s " \
+        "--readwrite=write --runtime=%s > " \
+        "%s/%s" % (data_disk_path,
+                   io_data_disk_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_data_disk_64k_seq_write_file)
     print cmd_64k_seq_write
     subprocess.check_output([cmd_64k_seq_write], shell=True)
 
     print(data_disk_path + "  64k_seq_read")
-    cmd_64k_seq_read = "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
-                       "--gtod_reduce=1 --name=test --filename=%s " \
-                       "--bs=64k --iodepth=64 --size=%s " \
-                       "--readwrite=read --runtime=%s > " \
-                       "%s/%s" % (data_disk_path,
-                                  io_data_disk_size,
-                                  io_test_run_time,
-                                  result_dir,
-                                  io_test_data_disk_64k_seq_read_file)
+    cmd_64k_seq_read = \
+        "sudo fio --randrepeat=1 --ioengine=libaio --direct=1 " \
+        "--gtod_reduce=1 --name=test --filename=%s " \
+        "--bs=64k --iodepth=64 --size=%s " \
+        "--readwrite=read --runtime=%s > " \
+        "%s/%s" % (data_disk_path,
+                   io_data_disk_size,
+                   io_test_run_time,
+                   result_dir,
+                   io_test_data_disk_64k_seq_read_file)
     print cmd_64k_seq_read
     subprocess.check_output([cmd_64k_seq_read], shell=True)
 
 
 def compress_dir(src_path):
     compressed_file = "%s/%s.tar.gz" % (os.path.dirname(src_path),
-                            os.path.basename(src_path))
+                                        os.path.basename(src_path))
     with tarfile.open(compressed_file, "w:gz") as tar:
         tar.add(src_path, arcname=os.path.basename(src_path))
     shutil.rmtree(src_path)
