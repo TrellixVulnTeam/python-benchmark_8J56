@@ -18,10 +18,10 @@ print process.pid
 str = ""
 while True:
     out = process.stdout.read(1)
-    if out == '' and process.poll() != None:
+    if out == '' and process.poll() is not None:
         break
     if out != '':
-        str+=out
+        str += out
         # sys.stdout.write(out)
         sys.stdout.flush()
 
