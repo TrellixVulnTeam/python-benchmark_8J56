@@ -31,7 +31,8 @@ def get_cpu_result(cpu_result_file):
         for line in f.readlines():
             if "total time:" in line:
                 cpu_result = line.split(':')[1].strip().replace('s', '')
-                return 200000 / float(cpu_result)
+                # return 200000 / float(cpu_result)
+                return float(cpu_result)
 
 
 def get_memory_result(memory_result_file):
