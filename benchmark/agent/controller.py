@@ -1,102 +1,113 @@
 import json
 import socket
 import time
+from benchmark_worker import TaskStatus
+from benchmark_worker import OperateType
+from benchmark_worker import ReturnCode
+import benchmark_worker
 
+listen_port = benchmark_worker.listen_port
+bandwidth_testing_time = 10 # default 120
+pps_testing_time = 120
+latency_testing_time = 600
+requery_delay = 5 # default 30
+wait_for_task_stopped_time = 5
 
-class TaskStatus:
-    RUNNING = "0"
-    NOT_STARTED = "1"
-    STOPPED = "2"
-
-
-class OperateType:
-    START = "0"
-    KILL = "1"
-    STATUS = "2"
-    CLEAN = "3"
-
-
-class ReturnCode:
-    SUCCESSED = "0"
-    FAILED = "1"
-
-
-server_port = 9898
-
-# bandwidth_task = {"tested_server_id": 1, "agent_ids": [2, 3, 4]}
-bandwidth_task = {"tested_server_ip": "10.12.10.52",
-                  "agent_ips": ["10.12.10.53", "10.12.10.54", "10.12.10.57",
-                                "10.12.10.58"]}
-
-
-
-def send_msg(ip, port, msg):
+def send_msg(ip, msg):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((ip, port))
+    sock.connect((ip, listen_port))
     sock.sendall(msg + "\n")
 
-    received = sock.recv(4096)
+    received = sock.recv(8192).strip()
+    # print received
     return received
 
 
-def get_status(ip, port, task_id=1):
+def get_status(ip, task_id=1):
     msg = {"operate": OperateType.STATUS, "task_id": task_id}
-    received = send_msg(ip, port, json.dumps(msg))
+    received = send_msg(ip, json.dumps(msg))
     return json.loads(received)
 
 
-def start(ip, port, command, task_id=1):
+def start(ip, command, task_id=1):
     msg = {"operate": OperateType.START, "command": command, "task_id": task_id}
-    received = send_msg(ip, port, json.dumps(msg))
-    # return json.loads(received)
-
-
-def stop(ip, port, task_id=1):
-    msg = {"operate": OperateType.KILL, "task_id": task_id}
-    received = send_msg(ip, port, json.dumps(msg))
+    received = send_msg(ip, json.dumps(msg))
     return json.loads(received)
 
 
-def clean(ip, port):
+def stop(ip, task_id=1):
+    msg = {"operate": OperateType.KILL, "task_id": task_id}
+    received = send_msg(ip, json.dumps(msg))
+    return json.loads(received)
+
+
+def clean(ip):
     msg = {"operate": OperateType.CLEAN}
-    received = send_msg(ip, port, json.dumps(msg))
-    # return json.loads(received)
+    received = send_msg(ip, json.dumps(msg))
+    return json.loads(received)
 
 
-def test_incoming_bandwidth():
-    tested_server_ip = bandwidth_task["tested_server_ip"]
+def execute_command(ip, command):
+    msg = {"operate": OperateType.DIRECT_COMMAND, "command": command}
+    received = send_msg(ip, json.dumps(msg))
+    return json.loads(received)
 
-    clean(tested_server_ip, server_port)
-    for agent_ip in bandwidth_task["agent_ips"]:
-        print "clean %s" % agent_ip
-        clean(agent_ip, server_port)
 
-    agent_all_stopped = False
-    while not agent_all_stopped:
-        tested_server_status = get_status(tested_server_ip, server_port)
-        if tested_server_status["status"] == TaskStatus.NOT_STARTED:
-            command = "iperf -s"
-            start(tested_server_ip, server_port, command)
-        elif tested_server_status["status"] == TaskStatus.RUNNING:
+def get_rx(ip):
+    command = "ifconfig"
+    output = execute_command(ip, command)
+    print output
+
+
+def get_incoming_bandwidth(servers_config):
+    """
+    get incoming bandwidth
+    :param servers_config: eg: {"master": "10.0.0.1", "slaves": ["10.0.0.2", "10.0.0.3"]}
+    :return:
+    """
+    master = servers_config["master"]
+
+    # clean env on master
+    clean(master)
+
+    # clean env on slaves
+    for slave in servers_config["slaves"]:
+        clean(slave)
+
+    # start master
+    command = "iperf -s"
+    # print "start %s with command: %s" % (master, command)
+    start(master, command)
+
+    # are all slave work done
+    is_all_slave_work_done = False
+    while not is_all_slave_work_done:
+        master_status = get_status(master)
+        if master_status["status"] == TaskStatus.RUNNING:
             stopped_count = 0
-            for agent_ip in bandwidth_task["agent_ips"]:
-                agent_status = get_status(agent_ip, server_port)
+            for slave in servers_config["slaves"]:
+                agent_status = get_status(slave)
                 if agent_status["status"] == TaskStatus.NOT_STARTED:
-                    command = "iperf -c %s -t 20" % (tested_server_ip)
-                    start(agent_ip, server_port, command)
+                    command = "iperf -c %s -t %s" % (master, bandwidth_testing_time)
+                    start(slave, command)
                 elif agent_status["status"] == TaskStatus.STOPPED:
                     stopped_count += 1
-                    if stopped_count == len(bandwidth_task["agent_ips"]):
-                        agent_all_stopped = True
-        time.sleep(10)
+                    if stopped_count == len(servers_config["slaves"]):
+                        is_all_slave_work_done = True
+        time.sleep(bandwidth_testing_time + requery_delay)
 
-    stop(tested_server_ip, server_port)
-    tested_server_status = get_status(tested_server_ip, server_port)
-    if tested_server_status["status"] == TaskStatus.STOPPED:
-        result = tested_server_status["result"]
+    # stop master and get status
+    # print "stop %s running by command: %s" % (master, command)
+    stop(master)
+    while True:
+        master_status = get_status(master)
+        if master_status["status"] == TaskStatus.STOPPED:
+            result = master_status["result"]
+            break
+        time.sleep(wait_for_task_stopped_time)
 
     total_incoming_band_width = 0
-    print "result is: \n"
+    # print "result is: \n"
     for line in result:
         if "/sec" in line:
             print line
@@ -106,56 +117,59 @@ def test_incoming_bandwidth():
             if "Gbits" in unit:
                 value = 1024 * float(splits[-2])
             total_incoming_band_width += value
-    print "total_incoming_band_width : %s" % total_incoming_band_width
+    print "[%s] total_incoming_band_width : %s" % (master, total_incoming_band_width)
 
 
-def test_outgoing_bandwidth():
-    tested_server_ip = bandwidth_task["tested_server_ip"]
+def get_outgoing_bandwidth(servers_config):
+    """
+    get outgoing bandwidth
+    :param servers_config: eg: {"master": "10.0.0.1", "slaves": ["10.0.0.2", "10.0.0.3"]}
+    """
+    master = servers_config["master"]
+    # clean env on master
+    clean(master)
 
-    clean(tested_server_ip, server_port)
-    for agent_ip in bandwidth_task["agent_ips"]:
-        print "clean %s" % agent_ip
-        clean(agent_ip, server_port)
+    # clean env on slaves
+    for slave in servers_config["slaves"]:
+        clean(slave)
 
-    # launch multi client on server.
-
-    # run 'iperf -s' on agents
-    for agent_ip in bandwidth_task["agent_ips"]:
-        agent_status = get_status(agent_ip, server_port)
+    # run 'iperf -s' on slaves
+    for slave in servers_config["slaves"]:
+        agent_status = get_status(slave)
         if agent_status["status"] == TaskStatus.NOT_STARTED:
             command = "iperf -s"
-            start(agent_ip, server_port, command)
+            start(slave, command)
 
     task_id = 1
-    for agent_ip in bandwidth_task["agent_ips"]:
-        command = "iperf -c %s -t 20" % agent_ip
-        start(tested_server_ip, server_port, command, task_id)
+    for slave in servers_config["slaves"]:
+        command = "iperf -c %s -t %s" % (slave, bandwidth_testing_time)
+        start(master, command, task_id)
         task_id += 1
 
-    all_server_tasked_stopped = False
+    all_master_tasks_done = False
 
-    while not all_server_tasked_stopped:
+    while not all_master_tasks_done:
         task_id = 1
         stopped_count = 0
-        for agent_ip in bandwidth_task["agent_ips"]:
-            task_status = get_status(tested_server_ip, server_port, task_id)
+        for slave in servers_config["slaves"]:
+            task_status = get_status(master, task_id)
             if task_status["status"] == TaskStatus.STOPPED:
                 stopped_count += 1
             task_id += 1
-        if stopped_count == len(bandwidth_task["agent_ips"]):
-            all_server_tasked_stopped = True
-        time.sleep(10)
+        if stopped_count == len(servers_config["slaves"]):
+            all_master_tasks_done = True
+        time.sleep(bandwidth_testing_time + requery_delay)
 
     # stop agnet
-    for agent_ip in bandwidth_task["agent_ips"]:
-        stop(agent_ip, server_port)
+    for slave in servers_config["slaves"]:
+        stop(slave)
 
     total_outgoing_band_width = 0
     task_id = 1
-    for agent_ip in bandwidth_task["agent_ips"]:
-        task_status = get_status(tested_server_ip, server_port, task_id)
+    for slave in servers_config["slaves"]:
+        task_status = get_status(master, task_id)
         result = task_status["result"]
-        print "result [%s]: \n" % task_id
+        # print "result [%s]: \n" % task_id
         for line in result:
             if "/sec" in line:
                 print line
@@ -167,8 +181,63 @@ def test_outgoing_bandwidth():
                 total_outgoing_band_width += value
         task_id += 1
 
-    print "total_outgoing_band_width : %s" % total_outgoing_band_width
+    print "[%s] total_outgoing_band_width : %s" % (master, total_outgoing_band_width)
+
+
+def get_pps(servers_config):
+    """
+    get package per second
+    :param servers_config: eg: {"master": "10.0.0.1", "slaves": ["10.0.0.2", "10.0.0.3"]}
+    :return:
+    """
+    master = servers_config["master"]
+
+    # clean env on master
+    clean(master)
+
+    # clean env on slaves
+    for slave in servers_config["slaves"]:
+        clean(slave)
+
+    # start master
+    start_rx = get_rx(master)
+    start(master, "iperf -s")
+
+    # are all slave work done
+    is_all_slave_work_done = False
+    while not is_all_slave_work_done:
+        master_status = get_status(master)
+        if master_status["status"] == TaskStatus.RUNNING:
+            stopped_count = 0
+            for slave in servers_config["slaves"]:
+                agent_status = get_status(slave)
+                if agent_status["status"] == TaskStatus.NOT_STARTED:
+                    command = "iperf -c %s -t %s -M %s" % (master, bandwidth_testing_time, M)
+                    start(slave, command)
+                elif agent_status["status"] == TaskStatus.STOPPED:
+                    stopped_count += 1
+                    if stopped_count == len(servers_config["slaves"]):
+                        is_all_slave_work_done = True
+        time.sleep(bandwidth_testing_time + requery_delay)
+
+    # stop master and get status
+    stop(master)
+    end_rx = get_rx(master)
+    print "[%s] pps : %s" % (master, total_incoming_band_width) # end_rx - start_rx
+
+
+
+
 
 if __name__ == "__main__":
-    test_incoming_bandwidth()
-    test_outgoing_bandwidth()
+    ip_10_12_10_52 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
+    # get_incoming_bandwidth(ip_10_12_10_52)
+    # get_outgoing_bandwidth(ip_10_12_10_52)
+    get_pps(ip_10_12_10_52)
+
+    # ip_10_12_10_53 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
+    # get_incoming_bandwidth(ip_10_12_10_53)
+    # get_outgoing_bandwidth(ip_10_12_10_53)
+
+
+
