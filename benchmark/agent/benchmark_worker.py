@@ -1,9 +1,13 @@
+"""
+you should run this script as root,
+or the kill command will fail and the status will always be running
+"""
+
 import SocketServer
 import json
 import subprocess
 import sys
 import threading
-import time
 import os
 import signal
 import socket
@@ -73,13 +77,15 @@ def execute_command_direct(command):
 class TCPHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         data = self.request.recv(8192).strip()
-        print "[handler] received data from %s: %s" % (self.client_address[0], data)
+        print "[handler] received data from %s: %s" % \
+              (self.client_address[0], data)
         msg = json.loads(data)
         operate = msg.get("operate", "")
         if operate == OperateType.START:
             command = msg["command"]
             task_id = msg["task_id"]
-            thread = threading.Thread(target=execute_command, args=(command, task_id))
+            thread = threading.Thread(target=execute_command,
+                                      args=(command, task_id))
             thread.start()
             msg = {"code": ReturnCode.SUCCESSED}
             self.request.sendall(json.dumps(msg))
@@ -104,14 +110,16 @@ class TCPHandler(SocketServer.BaseRequestHandler):
                     # print "result %s exists" % (result_file + str(task_id))
                     with open(result_file + str(task_id), 'r') as f:
                         result = f.readlines()
-                    msg = {"code": ReturnCode.SUCCESSED, "status": TaskStatus.STOPPED, "result": result}
+                    msg = {"code": ReturnCode.SUCCESSED,
+                           "status": TaskStatus.STOPPED, "result": result}
                     self.request.sendall(json.dumps(msg))
                 else:
-                    # print "result %s not exists" % (result_file + str(task_id))
-                    msg = {"code": ReturnCode.SUCCESSED, "status": TaskStatus.RUNNING}
+                    msg = {"code": ReturnCode.SUCCESSED,
+                           "status": TaskStatus.RUNNING}
                     self.request.sendall(json.dumps(msg))
             else:
-                msg = {"code": ReturnCode.SUCCESSED, "status": TaskStatus.NOT_STARTED}
+                msg = {"code": ReturnCode.SUCCESSED,
+                       "status": TaskStatus.NOT_STARTED}
                 self.request.sendall(json.dumps(msg))
         elif operate == OperateType.CLEAN:
             clean()
@@ -130,7 +138,8 @@ class TCPHandler(SocketServer.BaseRequestHandler):
 def clean():
     print "[clean] kill all processes and clean all tmp files"
     for tmp_file in os.listdir('/tmp'):
-        if tmp_file.startswith("pid_benchmark_") or tmp_file.startswith("result_benchmark_"):
+        if tmp_file.startswith("pid_benchmark_") \
+                or tmp_file.startswith("result_benchmark_"):
             file_name = '/tmp/' + tmp_file
             if os.path.isfile(file_name):
                 if "pid_benchmark_" in file_name:
@@ -154,8 +163,7 @@ def get_ips():
     for ip in ip_info_output.split('\n'):
         if "127.0.0.1" not in ip:
             ips.append(ip)
-            replace_slash = ip.replace("/", "_")
-    return "[local info] " + "-".join(ips)
+    return ("[local info(ip)] " + "-".join(ips)).strip("-")
 
 
 def install_packages(packages):
@@ -172,15 +180,13 @@ def install_packages(packages):
 
 
 if __name__ == "__main__":
-    """
-    you should run this script as root, or the kill command will fail and the status
-    will always be running
-    """
-    packages = ['epel-release', 'sysbench', 'fio', 'iperf', 'tree', 'pciutils', 'net-tools', 'htop', 'nload']
+    packages = ["epel-release", "tree", "htop", "nload", "sysstat", "pciutils",
+                "iproute", "net-tools",
+                "sysbench", "fio", "iperf"]
     install_packages(packages)
 
     clean()
-    print "[local info] " + socket.gethostname()
+    print "[local info(hostname)] " + socket.gethostname()
     print get_ips()
     server = SocketServer.TCPServer((listen_ip, listen_port), TCPHandler)
     server.serve_forever()

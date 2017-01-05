@@ -3,15 +3,14 @@ import socket
 import time
 from benchmark_worker import TaskStatus
 from benchmark_worker import OperateType
-from benchmark_worker import ReturnCode
 import benchmark_worker
 
 listen_port = benchmark_worker.listen_port
-bandwidth_testing_time = 120 # default 120
+bandwidth_testing_time = 120  # default 120
 pps_testing_time = 120
-pps_testing_mms = 88 # the value of 'iperf -M', maximum segment size
+pps_testing_mms = 88  # the value of 'iperf -M', maximum segment size
 latency_testing_packaet_count = 60  # default 600
-requery_delay = 5 # default 30
+requery_delay = 5  # default 30
 wait_for_task_stopped_time = 5
 
 
@@ -34,7 +33,9 @@ def get_status(ip, task_id=1):
 
 
 def start(ip, command, task_id=1):
-    msg = {"operate": OperateType.START, "command": command, "task_id": task_id}
+    msg = {"operate": OperateType.START,
+           "command": command,
+           "task_id": task_id}
     received = send_msg(ip, json.dumps(msg))
     return json.loads(received)
 
@@ -107,7 +108,8 @@ def get_incoming_bandwidth(servers_config):
             for slave in servers_config["slaves"]:
                 agent_status = get_status(slave)
                 if agent_status["status"] == TaskStatus.NOT_STARTED:
-                    command = "iperf -c %s -t %s" % (master, bandwidth_testing_time)
+                    command = "iperf -c %s -t %s" % \
+                              (master, bandwidth_testing_time)
                     start(slave, command)
                 elif agent_status["status"] == TaskStatus.STOPPED:
                     stopped_count += 1
@@ -136,7 +138,8 @@ def get_incoming_bandwidth(servers_config):
             if "Gbits" in unit:
                 value = 1024 * float(splits[-2])
             total_incoming_band_width += value
-    print "[%s] total_incoming_band_width : %s" % (master, total_incoming_band_width)
+    print "[%s] total_incoming_band_width : %s" % \
+          (master, total_incoming_band_width)
     return total_incoming_band_width
 
 
@@ -164,7 +167,8 @@ def get_outgoing_bandwidth(servers_config):
 
     task_id = 1
     for slave in servers_config["slaves"]:
-        command = "iperf -c %s -t %s" % (slave, bandwidth_testing_time)
+        command = "iperf -c %s -t %s" % \
+                  (slave, bandwidth_testing_time)
         start(master, command, task_id)
         task_id += 1
 
@@ -202,14 +206,16 @@ def get_outgoing_bandwidth(servers_config):
                     value = 1024 * float(splits[-2])
                 total_outgoing_band_width += value
         task_id += 1
-    print "[%s] total_outgoing_band_width : %s" % (master, total_outgoing_band_width)
+    print "[%s] total_outgoing_band_width : %s" % \
+          (master, total_outgoing_band_width)
     return total_outgoing_band_width
 
 
 def get_pps(servers_config):
     """
     get package per second
-    :param servers_config: eg: {"master": "10.0.0.1", "slaves": ["10.0.0.2", "10.0.0.3"]}
+    :param servers_config: eg:
+    {"master": "10.0.0.1", "slaves": ["10.0.0.2", "10.0.0.3"]}
     :return: packets per second
     """
     master = servers_config["master"]
@@ -234,7 +240,8 @@ def get_pps(servers_config):
             for slave in servers_config["slaves"]:
                 agent_status = get_status(slave)
                 if agent_status["status"] == TaskStatus.NOT_STARTED:
-                    command = "iperf -c %s -t %s -M %s" % (master, pps_testing_time, pps_testing_mms)
+                    command = "iperf -c %s -t %s -M %s" % \
+                              (master, pps_testing_time, pps_testing_mms)
                     start(slave, command)
                 elif agent_status["status"] == TaskStatus.STOPPED:
                     stopped_count += 1
@@ -285,14 +292,13 @@ if __name__ == "__main__":
     # get_outgoing_bandwidth(ip_10_12_10_53)
 
     bandwidth = {"master": "10.12.10.120",
-                             "slaves": ["10.12.10.122",
-                                        "10.12.10.123"]}
+                 "slaves": ["10.12.10.122",
+                            "10.12.10.123"]}
     pps = {"master": "10.12.10.120", "slaves": ["10.12.10.122"]}
     latency = {"master": "10.12.10.120",
-                           "slaves": ["10.12.10.122", "10.12.10.123"]}
+               "slaves": ["10.12.10.122", "10.12.10.123"]}
 
     get_incoming_bandwidth(bandwidth)
     get_outgoing_bandwidth(bandwidth)
     get_pps(pps)
     get_latency(latency)
-
