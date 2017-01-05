@@ -7,10 +7,10 @@ from benchmark_worker import ReturnCode
 import benchmark_worker
 
 listen_port = benchmark_worker.listen_port
-bandwidth_testing_time = 10 # default 120
-pps_testing_time = 10
+bandwidth_testing_time = 120 # default 120
+pps_testing_time = 120
 pps_testing_mms = 88 # the value of 'iperf -M', maximum segment size
-latency_testing_packaet_count = 30  # default 600
+latency_testing_packaet_count = 60  # default 600
 requery_delay = 5 # default 30
 wait_for_task_stopped_time = 5
 
@@ -269,20 +269,30 @@ def get_latency(servers_config):
 
 
 if __name__ == "__main__":
-    bandwidth_10_12_10_52 = {"master": "10.12.10.52",
-                             "slaves": ["10.12.10.53", "10.12.10.54"]}
-    pps_10_12_10_52 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
-    latency_10_12_10_52 = {"master": "10.12.10.52",
-                           "slaves": ["10.12.10.53", "10.12.10.54"]}
-
-    get_incoming_bandwidth(bandwidth_10_12_10_52)
-    get_outgoing_bandwidth(bandwidth_10_12_10_52)
-    get_pps(pps_10_12_10_52)
-    get_latency(latency_10_12_10_52)
+    # bandwidth_10_12_10_52 = {"master": "10.12.10.52",
+    #                          "slaves": ["10.12.10.53", "10.12.10.54"]}
+    # pps_10_12_10_52 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
+    # latency_10_12_10_52 = {"master": "10.12.10.52",
+    #                        "slaves": ["10.12.10.53", "10.12.10.54"]}
+    #
+    # get_incoming_bandwidth(bandwidth_10_12_10_52)
+    # get_outgoing_bandwidth(bandwidth_10_12_10_52)
+    # get_pps(pps_10_12_10_52)
+    # get_latency(latency_10_12_10_52)
 
     # ip_10_12_10_53 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
     # get_incoming_bandwidth(ip_10_12_10_53)
     # get_outgoing_bandwidth(ip_10_12_10_53)
 
+    bandwidth = {"master": "10.12.10.120",
+                             "slaves": ["10.12.10.122",
+                                        "10.12.10.123"]}
+    pps = {"master": "10.12.10.120", "slaves": ["10.12.10.122"]}
+    latency = {"master": "10.12.10.120",
+                           "slaves": ["10.12.10.122", "10.12.10.123"]}
 
+    get_incoming_bandwidth(bandwidth)
+    get_outgoing_bandwidth(bandwidth)
+    get_pps(pps)
+    get_latency(latency)
 

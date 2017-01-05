@@ -118,6 +118,7 @@ class TCPHandler(SocketServer.BaseRequestHandler):
             msg = {"code": ReturnCode.SUCCESSED}
             self.request.sendall(json.dumps(msg))
         elif operate == OperateType.DIRECT_COMMAND:
+            # TODO: it is dangerous to expose this api
             command = msg["command"]
             output = execute_command_direct(command)
             msg = {"code": ReturnCode.SUCCESSED, "output": output}
@@ -164,7 +165,7 @@ def install_packages(packages):
             subprocess.check_output([existed_command], shell=True)
         except:
             print "%s is not installed, install it" % package
-            cmd = "sudo yum -y install %s" % package
+            cmd = "yum -y install %s" % package
             print cmd
             output = subprocess.check_output([cmd], shell=True)
             print output
@@ -175,7 +176,7 @@ if __name__ == "__main__":
     you should run this script as root, or the kill command will fail and the status
     will always be running
     """
-    packages = ['epel-release', 'sysbench', 'fio', 'iperf', 'tree', 'pciutils', 'net-tools']
+    packages = ['epel-release', 'sysbench', 'fio', 'iperf', 'tree', 'pciutils', 'net-tools', 'htop', 'nload']
     install_packages(packages)
 
     clean()
