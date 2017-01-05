@@ -159,10 +159,16 @@ def get_ips():
 
 def install_packages(packages):
     for package in packages:
-        cmd = "sudo yum -y install %s" % package
-        print cmd
-        output = subprocess.check_output([cmd], shell=True)
-        print output
+        existed_command = "rpm -qa | grep %s" % package
+        try:
+            subprocess.check_output([existed_command], shell=True)
+        except:
+            print "%s is not installed, install it" % package
+            cmd = "sudo yum -y install %s" % package
+            print cmd
+            output = subprocess.check_output([cmd], shell=True)
+            print output
+
 
 if __name__ == "__main__":
     """
