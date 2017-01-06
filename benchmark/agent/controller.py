@@ -6,13 +6,14 @@ from benchmark_worker import OperateType
 import benchmark_worker
 
 listen_port = benchmark_worker.listen_port
-bandwidth_testing_time = 120  # default 120
-pps_testing_time = 120
-pps_testing_mms = 88  # the value of 'iperf -M', maximum segment size
-latency_testing_packaet_count = 60  # default 600
+bandwidth_testing_time = 10  # default 120
+pps_testing_time = 10   # default 120
+pps_testing_mms = 88  # the value of 'iperf3 -M', maximum segment size
+latency_testing_packaet_count = 10  # default 600
 requery_delay = 5  # default 30
 wait_for_task_stopped_time = 5
 
+iperf_report_interval_plus = 5
 
 def send_msg(ip, msg):
     try:
@@ -29,6 +30,7 @@ def send_msg(ip, msg):
 def get_status(ip, task_id=1):
     msg = {"operate": OperateType.STATUS, "task_id": task_id}
     received = send_msg(ip, json.dumps(msg))
+    # print received
     return json.loads(received)
 
 
@@ -41,7 +43,7 @@ def start(ip, command, task_id=1):
 
 
 def stop(ip, task_id=1):
-    msg = {"operate": OperateType.KILL, "task_id": task_id}
+    msg = {"operate": OperateType.STOP, "task_id": task_id}
     received = send_msg(ip, json.dumps(msg))
     return json.loads(received)
 
@@ -63,6 +65,7 @@ def get_rx(ip):
     output = execute_command(ip, command).get("output", "")
     for line in output.split('\n'):
         if "RX packets" in line:
+            print line
             rx_packets = float(line.strip().split(' ')[2])
             return rx_packets
     raise Exception("cannto get rx from ifconfig")
@@ -95,9 +98,17 @@ def get_incoming_bandwidth(servers_config):
         clean(slave)
 
     # start master
-    command = "iperf -s"
+    command = "iperf3 -s -f m -i %s" % (bandwidth_testing_time+iperf_report_interval_plus)
     # print "start %s with command: %s" % (master, command)
     start(master, command)
+
+    for slave in servers_config["slaves"]:
+        agent_status = get_status(slave)
+        if agent_status["status"] == TaskStatus.NOT_STARTED:
+            command = "iperf3 -f m -i %s -c %s -t %s" % \
+                      ((bandwidth_testing_time+iperf_report_interval_plus), master, bandwidth_testing_time)
+            start(slave, command)
+    time.sleep(bandwidth_testing_time + requery_delay)
 
     # are all slave work done
     is_all_slave_work_done = False
@@ -107,38 +118,32 @@ def get_incoming_bandwidth(servers_config):
             stopped_count = 0
             for slave in servers_config["slaves"]:
                 agent_status = get_status(slave)
-                if agent_status["status"] == TaskStatus.NOT_STARTED:
-                    command = "iperf -c %s -t %s" % \
-                              (master, bandwidth_testing_time)
-                    start(slave, command)
-                elif agent_status["status"] == TaskStatus.STOPPED:
+                if agent_status["status"] == TaskStatus.FINISHED:
                     stopped_count += 1
                     if stopped_count == len(servers_config["slaves"]):
                         is_all_slave_work_done = True
-        time.sleep(bandwidth_testing_time + requery_delay)
+        time.sleep(requery_delay)
 
     # stop master and get status
     # print "stop %s running by command: %s" % (master, command)
     stop(master)
     while True:
         master_status = get_status(master)
-        if master_status["status"] == TaskStatus.STOPPED:
+        if master_status["status"] == TaskStatus.FINISHED:
             result = master_status["result"]
             break
         time.sleep(wait_for_task_stopped_time)
 
     total_incoming_band_width = 0
     # print "result is: \n"
-    for line in result:
-        if "/sec" in line:
-            print line
-            splits = line.strip().split(' ')
-            unit = splits[-1]
-            value = float(splits[-2])
-            if "Gbits" in unit:
-                value = 1024 * float(splits[-2])
+    for line in result.split("\n"):
+        print line
+        if "/sec" in line and "receiver" in line:
+            str_value = line.split('Mbits/sec')[0].strip().split(' ')[-1]
+            # print str_value
+            value = float(str_value)
             total_incoming_band_width += value
-    print "[%s] total_incoming_band_width : %s" % \
+    print "[%s] total_incoming_band_width : %s Mbps" % \
           (master, total_incoming_band_width)
     return total_incoming_band_width
 
@@ -158,19 +163,20 @@ def get_outgoing_bandwidth(servers_config):
     for slave in servers_config["slaves"]:
         clean(slave)
 
-    # run 'iperf -s' on slaves
+    # run 'iperf3 -s -f m ' on slaves
     for slave in servers_config["slaves"]:
         agent_status = get_status(slave)
         if agent_status["status"] == TaskStatus.NOT_STARTED:
-            command = "iperf -s"
+            command = "iperf3 -s -f m -i %s " % (bandwidth_testing_time+iperf_report_interval_plus)
             start(slave, command)
 
     task_id = 1
     for slave in servers_config["slaves"]:
-        command = "iperf -c %s -t %s" % \
-                  (slave, bandwidth_testing_time)
+        command = "iperf3 -f m -i %s -c %s -t %s" % \
+                  ((bandwidth_testing_time+iperf_report_interval_plus), slave, bandwidth_testing_time)
         start(master, command, task_id)
         task_id += 1
+    time.sleep(bandwidth_testing_time + requery_delay)
 
     all_master_tasks_done = False
 
@@ -179,12 +185,12 @@ def get_outgoing_bandwidth(servers_config):
         stopped_count = 0
         for slave in servers_config["slaves"]:
             task_status = get_status(master, task_id)
-            if task_status["status"] == TaskStatus.STOPPED:
+            if task_status["status"] == TaskStatus.FINISHED:
                 stopped_count += 1
             task_id += 1
         if stopped_count == len(servers_config["slaves"]):
             all_master_tasks_done = True
-        time.sleep(bandwidth_testing_time + requery_delay)
+        time.sleep(requery_delay)
 
     # stop agnet
     for slave in servers_config["slaves"]:
@@ -196,17 +202,15 @@ def get_outgoing_bandwidth(servers_config):
         task_status = get_status(master, task_id)
         result = task_status["result"]
         # print "result [%s]: \n" % task_id
-        for line in result:
-            if "/sec" in line:
+        for line in result.split("\n"):
+            if "/sec" in line and "sender" in line:
                 print line
-                splits = line.strip().split(' ')
-                unit = splits[-1]
-                value = float(splits[-2])
-                if "Gbits" in unit:
-                    value = 1024 * float(splits[-2])
+                str_value = line.split('Mbits/sec')[0].strip().split(' ')[-1]
+                print str_value
+                value = float(str_value)
                 total_outgoing_band_width += value
         task_id += 1
-    print "[%s] total_outgoing_band_width : %s" % \
+    print "[%s] total_outgoing_band_width : %s Mbps" % \
           (master, total_outgoing_band_width)
     return total_outgoing_band_width
 
@@ -229,7 +233,16 @@ def get_pps(servers_config):
 
     # start master
     start_rx = get_rx(master)
-    start(master, "iperf -s")
+    start(master, "iperf3 -f m -i %s -s" % (iperf_report_interval_plus+pps_testing_time))
+
+    for slave in servers_config["slaves"]:
+        agent_status = get_status(slave)
+        if agent_status["status"] == TaskStatus.NOT_STARTED:
+            command = "iperf3 -f m -i %s -c %s -t %s -M %s" % \
+                      ((iperf_report_interval_plus+pps_testing_time), master,
+                       pps_testing_time, pps_testing_mms)
+            start(slave, command)
+    time.sleep(pps_testing_time + requery_delay)
 
     # are all slave work done
     is_all_slave_work_done = False
@@ -239,21 +252,17 @@ def get_pps(servers_config):
             stopped_count = 0
             for slave in servers_config["slaves"]:
                 agent_status = get_status(slave)
-                if agent_status["status"] == TaskStatus.NOT_STARTED:
-                    command = "iperf -c %s -t %s -M %s" % \
-                              (master, pps_testing_time, pps_testing_mms)
-                    start(slave, command)
-                elif agent_status["status"] == TaskStatus.STOPPED:
+                if agent_status["status"] == TaskStatus.FINISHED:
                     stopped_count += 1
                     if stopped_count == len(servers_config["slaves"]):
                         is_all_slave_work_done = True
-        time.sleep(pps_testing_time + requery_delay)
+        time.sleep(requery_delay)
 
     # stop master and get status
     stop(master)
     end_rx = get_rx(master)
 
-    pps = (end_rx - start_rx) / bandwidth_testing_time
+    pps = (end_rx - start_rx) / pps_testing_time
     print "[%s] pps : %s" % (master, pps)
     return pps
 
@@ -276,13 +285,13 @@ def get_latency(servers_config):
 
 
 if __name__ == "__main__":
-    # bandwidth_10_12_10_52 = {"master": "10.12.10.52",
-    #                          "slaves": ["10.12.10.53", "10.12.10.54"]}
-    # pps_10_12_10_52 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
-    # latency_10_12_10_52 = {"master": "10.12.10.52",
-    #                        "slaves": ["10.12.10.53", "10.12.10.54"]}
-    #
-    # get_incoming_bandwidth(bandwidth_10_12_10_52)
+    bandwidth_10_12_10_52 = {"master": "10.12.10.52",
+                             "slaves": ["10.12.10.53"]}
+    pps_10_12_10_52 = {"master": "10.12.10.52", "slaves": ["10.12.10.53"]}
+    latency_10_12_10_52 = {"master": "10.12.10.52",
+                           "slaves": ["10.12.10.53"]}
+
+    get_incoming_bandwidth(bandwidth_10_12_10_52)
     # get_outgoing_bandwidth(bandwidth_10_12_10_52)
     # get_pps(pps_10_12_10_52)
     # get_latency(latency_10_12_10_52)
@@ -291,14 +300,16 @@ if __name__ == "__main__":
     # get_incoming_bandwidth(ip_10_12_10_53)
     # get_outgoing_bandwidth(ip_10_12_10_53)
 
-    bandwidth = {"master": "10.12.10.120",
-                 "slaves": ["10.12.10.122",
-                            "10.12.10.123"]}
-    pps = {"master": "10.12.10.120", "slaves": ["10.12.10.122"]}
-    latency = {"master": "10.12.10.120",
-               "slaves": ["10.12.10.122", "10.12.10.123"]}
-
-    get_incoming_bandwidth(bandwidth)
-    get_outgoing_bandwidth(bandwidth)
-    get_pps(pps)
-    get_latency(latency)
+    # bandwidth = {"master": "10.200.6.46",
+    #              "slaves": ["10.200.8.12",
+    #                         "10.200.8.28",
+    #                         "10.200.8.38",
+    #                         "10.200.10.12"]}
+    # pps = {"master": "10.200.6.46", "slaves": ["10.200.8.12"]}
+    # latency = {"master": "10.200.6.46",
+    #            "slaves": ["10.200.6.46", "10.200.8.28"]}
+    #
+    # get_incoming_bandwidth(bandwidth)
+    # get_outgoing_bandwidth(bandwidth)
+    # get_pps(pps)
+    # get_latency(latency)
