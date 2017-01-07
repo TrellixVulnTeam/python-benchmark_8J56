@@ -4,10 +4,10 @@ import bson.json_util
 from flask import jsonify
 from flask_restful import Resource
 
-import benchmark.mylog as mylog
+from benchmark.utils import log_util
 from benchmark.utils import chart_util
 
-LOG = mylog.setup_custom_logger(__name__)
+LOG = log_util.get_logger(__name__)
 
 
 class Chart(Resource):

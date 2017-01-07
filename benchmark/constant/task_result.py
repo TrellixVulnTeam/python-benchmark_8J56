@@ -1,0 +1,2 @@
+class TaskResult:
+    KEY = "result"

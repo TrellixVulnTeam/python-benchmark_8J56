@@ -1,14 +1,14 @@
-      35 text files.
-classified 35 files      35 unique files.                              
-      20 files ignored.
+      51 text files.
+classified 51 files      51 unique files.                              
+      25 files ignored.
 
-github.com/AlDanial/cloc v 1.70  T=0.26 s (96.5 files/s, 7889.1 lines/s)
+github.com/AlDanial/cloc v 1.70  T=0.41 s (100.9 files/s, 5737.6 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Python                          22            364            150           1407
+Python                          38            422            205           1581
 JavaScript                       2             12              0             90
 HTML                             1              4              0             17
 -------------------------------------------------------------------------------
-SUM:                            25            380            150           1514
+SUM:                            41            438            205           1688
 -------------------------------------------------------------------------------
