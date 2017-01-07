@@ -39,6 +39,7 @@ def execute(command, task_num):
             break
         if out != '':
             output += out
+            sys.stdout.write(out)
             sys.stdout.flush()
 
     LOG.debug("writing results to file %s" %

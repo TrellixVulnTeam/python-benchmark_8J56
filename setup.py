@@ -13,7 +13,8 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'benchmark_api = benchmark.app:run'
+            'benchmark_api = benchmark.app:run',
+            'benchmark-agent = benchmark.agent.main:run'
         ]
     }
 )

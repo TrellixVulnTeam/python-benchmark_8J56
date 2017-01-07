@@ -3,7 +3,7 @@ import SocketServer
 from benchmark.utils import config_util
 
 
-if __name__ == "__main__":
+def run():
     print 'abc'
     if len(sys.argv) == 1:
         agent_ini_path = "/etc/benchmark/agent.ini"
@@ -30,3 +30,6 @@ if __name__ == "__main__":
         server.serve_forever()
     except Exception, exception:
         LOG.exception(exception)
+
+if __name__ == "__main__":
+    run()
